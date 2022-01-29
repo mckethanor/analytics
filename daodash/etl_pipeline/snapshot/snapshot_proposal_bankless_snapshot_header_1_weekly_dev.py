@@ -72,7 +72,7 @@ query = f"""
 # returns request as json
 
 
-def run_query(q):
+def run_query(query):
     request = requests.post('https://hub.snapshot.org/graphql'
                             '',
                             json={'query': query, 'variables': variables})
