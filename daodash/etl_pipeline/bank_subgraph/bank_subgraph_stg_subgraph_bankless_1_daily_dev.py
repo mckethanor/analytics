@@ -1,28 +1,26 @@
 # libraries for pipeline
 import os
-import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy import text
 import requests
-import json
 import pandas as pd
 from pprint import pprint
-
-# libraries for sched
-import sched
-import time
-import logging
-
-
-# using python-dotenv method
-from dotenv import load_dotenv
-load_dotenv()
 
 # Create Postgresql connection to existing table: stg_subgraph_bank_1
 # NOTE: need to use environment variables to separate password from this file
 # db_string = 'postgresql://user:password@localhost:port/mydatabase'
 
+# NOTE: on Ubuntu, the .env file can have no spaces.
+# i.e. it needs to be like this
+# DB_STRING="postgresql://user:password@localhost:port/mydatabase"
+# and loaded first with
+# `source .env`
+# before running the code
+# For example, the cron task for this is:
+# `source .env && source .env && /usr/bin/python3 /opt/bank_sched.py`
+
 db_string = os.environ.get('DB_STRING')
+
 db = create_engine(db_string)
 
 # IMPORTANT: grab max_id to later reset_index() to properly append updated dataframe into existing table on primary key (id)
@@ -94,26 +92,7 @@ def graph_etl(query):
     df3 = df2.rename(columns={'index': 'id'}, inplace=False)
     print(df3)
     print("#### need to un-comment next line to push to postgres ####")
-    #df3.to_sql('stg_subgraph_bank_1', con=db, if_exists='append', index=False)
+    df3.to_sql('stg_subgraph_bank_1', con=db, if_exists='append', index=False)
     return df3
 
-
-# To print out timestamps for 'first priority' and 'positional'
-def print_time(a='default'):
-    print("From print_time", time.time(), a)
-
-
-def schedule_etl(query):
-    print("First Timestamp: ", time.time())
-    graph_etl(query)
-    event_schedule.enter(40, 2, print_time, argument=('second in queue',))
-    event_schedule.enter(25, 1, print_time, kwargs={'a': 'first in queue'})
-    event_schedule.run()
-    #event_schedule.enter(50, 3, schedule_etl(query),)
-    print("Last Timestamp: ", time.time())
-
-
-event_schedule = sched.scheduler(time.time, time.sleep)
-print("Initiate schedule_etl...\n")
-event_schedule.enter(50, 3, schedule_etl(query),)
-print("\n Closing schedule_etl...")
+graph_etl(query)
